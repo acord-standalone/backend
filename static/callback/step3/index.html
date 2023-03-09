@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acord Auth Callback</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      background-color: black;
+      color: whitesmoke;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 8px;
+      font-family: 'Courier New', Courier, monospace;
+    }
+  </style>
+</head>
+
+<body>
+  <h2 id="english">...</h2>
+  <h2 id="turkish">...</h2>
+
+  <script>
+    const english = document.getElementById('english');
+    const turkish = document.getElementById('turkish');
+
+    async function findPort(start, increment) {
+      let port = start - 1;
+      while (port < start + increment) {
+        port += 1;
+
+        let val = await new Promise((resolve) => {
+          let socket = new WebSocket(`ws://127.0.0.1:${port}/acord`);
+          socket.onopen = () => {
+            socket.close();
+            resolve(port);
+          };
+
+          socket.onerror = () => {
+            resolve(false);
+          };
+
+          socket.onerror = () => {
+            resolve(false);
+          };
+
+          setTimeout(() => {
+            resolve(false);
+          }, 100);
+        });
+
+        if (val) {
+          return val;
+        } else if (port === start + increment) {
+          return null
+        }
+      }
+    }
+
+
+    (async () => {
+      const url = new URL(window.location.href);
+      if (!url.searchParams.get('data')) return (english.innerText = 'Invalid data.', turkish.innerText = 'Geçersiz veri.');
+
+      english.innerText = 'Please wait..';
+      turkish.innerText = 'Lütfen bekleyin..';
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      const socketPort = await findPort(6463, 20);
+      const data = JSON.parse(atob(url.searchParams.get('data')));
+      window.history.replaceState({}, document.title, "/static/callback/step3");
+
+      if (socketPort) {
+        const ws = new WebSocket(`ws://127.0.0.1:${socketPort}/acord`);
+
+        ws.onopen = () => {
+          ws.send(JSON.stringify(
+            [
+              "authCallbackId",
+              "AuthenticationCallback",
+              { acordToken: data.acordToken, userId: data.userId }
+            ]
+          ));
+          english.innerText = 'Logging in..';
+          turkish.innerText = 'Giriş yapılıyor..';
+        };
+
+        ws.onmessage = (message) => {
+          const data = JSON.parse(message.data);
+          if (data[0] === 'authCallbackId') {
+            if (data[1].ok) {
+              english.innerText = 'Logged in. (You can now close this window.)';
+              turkish.innerText = 'Giriş yapıldı. (Şimdi bu pencereyi kapatabilirsiniz.)';
+            } else {
+              english.innerText = "The account logged in does not match the account in the app. (You can close this window.)";
+              turkish.innerText = 'Giriş yapılan hesap ile uygulamadaki hesap uyuşmuyor. (Bu pencereyi kapatabilirsiniz.)';
+            }
+          }
+        };
+
+      } else {
+        english.innerText = 'Acord is not running.';
+        turkish.innerText = 'Çalışan Acord bulunamadı.';
+      }
+    })();
+  </script>
+</body>
+
+</html>

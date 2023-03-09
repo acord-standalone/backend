@@ -1,0 +1,20 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String   @unique @db.VarChar(64)
+  acord_token          String   @unique @db.VarChar(64)
+  discord_access_token String   @unique @db.VarChar(64)
+  updated_at           DateTime @updatedAt
+  created_at           DateTime @default(now())
+}
