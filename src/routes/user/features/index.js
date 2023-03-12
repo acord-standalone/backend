@@ -64,7 +64,7 @@ router.get('/badge/:badgeId', async (req, res) => {
   res.setHeader("Cache-Control", 600).send({ ok: true, badge });
 });
 
-router.get('/feature/:featureId/durations', async (req, res) => {
+router.get('/me/item/:featureId/durations', async (req, res) => {
   const userId = res.user.id;
   const featureId = req.params.featureId;
 
