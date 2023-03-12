@@ -17,4 +17,56 @@ model User {
   discord_access_token String   @unique @db.VarChar(64)
   updated_at           DateTime @updatedAt
   created_at           DateTime @default(now())
+
+  data     UserData?
+  features UserFeature[]
+}
+
+model UserData {
+  user_id    String   @unique @db.VarChar(64)
+  user       User     @relation(fields: [user_id], references: [id])
+  key        String   @db.VarChar(64)
+  value      String   @db.VarChar(64)
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+}
+
+enum FeatureType {
+  Badge
+  CustomColoredName
+}
+
+model UserFeature {
+  id         Int               @unique @default(autoincrement())
+  user       User              @relation(fields: [user_id], references: [id])
+  user_id    String            @db.VarChar(64)
+  type       FeatureType
+  feature_id Int?
+  data       Json?
+  enabled    Boolean           @default(true)
+  durations  FeatureDuration[] @relation("user_feature_durations")
+
+  currentDuration   FeatureDuration? @relation("user_feature_current_duration")
+  currentDurationId Int?             @unique
+
+  @@index([user_id], name: "idx_user_feature_user_id")
+}
+
+model FeatureDuration {
+  id              Int          @unique @default(autoincrement())
+  user_feature_id Int
+  user_feature    UserFeature  @relation("user_feature_durations", fields: [user_feature_id], references: [id])
+  duration        BigInt
+  consumeStart    DateTime?
+  consumeEnd      DateTime?
+  UserFeature     UserFeature? @relation("user_feature_current_duration", fields: [id], references: [currentDurationId])
+
+  @@index([user_feature_id], name: "idx_feature_duration_user_feature_id")
+}
+
+model Badge {
+  id           Int    @unique @default(autoincrement())
+  name         String @db.VarChar(64)
+  display_name String @db.VarChar(128)
+  image        String @db.VarChar(256)
 }
