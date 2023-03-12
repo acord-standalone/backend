@@ -32,13 +32,13 @@ model UserData {
 }
 
 enum FeatureType {
-  Badge
-  ColoredName
-  Hat
-  // FontName
-  // ProfileMusic
-  // ProfileAnimation
-  // AvatarShine
+  badge
+  colored_name
+  hat
+  // font_name
+  // profile_music
+  // profile_animation
+  // avatar_shine
 }
 
 model UserFeature {
