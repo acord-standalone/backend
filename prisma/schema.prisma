@@ -26,7 +26,7 @@ model UserData {
   user_id    String   @unique @db.VarChar(64)
   user       User     @relation(fields: [user_id], references: [id])
   key        String   @db.VarChar(64)
-  value      String   @db.VarChar(64)
+  value      Json     @db.JsonB
   updated_at DateTime @updatedAt
   created_at DateTime @default(now())
 }
