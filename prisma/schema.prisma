@@ -18,7 +18,7 @@ model User {
   updated_at           DateTime @updatedAt
   created_at           DateTime @default(now())
 
-  data     UserData?
+  data     UserData[]
   features UserFeature[]
 }
 
@@ -33,7 +33,12 @@ model UserData {
 
 enum FeatureType {
   Badge
-  CustomColoredName
+  ColoredName
+  Hat
+  // FontName
+  // ProfileMusic
+  // ProfileAnimation
+  // AvatarShine
 }
 
 model UserFeature {
@@ -46,10 +51,11 @@ model UserFeature {
   enabled    Boolean           @default(true)
   durations  FeatureDuration[] @relation("user_feature_durations")
 
-  currentDuration   FeatureDuration? @relation("user_feature_current_duration")
-  currentDurationId Int?             @unique
+  current_duration   FeatureDuration? @relation("user_feature_current_duration")
+  current_duration_id Int?             @unique
 
   @@index([user_id], name: "idx_user_feature_user_id")
+  @@unique([user_id, type, feature_id], name: "unq_user_feature_user_id_type_feature_id")
 }
 
 model FeatureDuration {
@@ -57,11 +63,13 @@ model FeatureDuration {
   user_feature_id Int
   user_feature    UserFeature  @relation("user_feature_durations", fields: [user_feature_id], references: [id])
   duration        BigInt
-  consumeStart    DateTime?
-  consumeEnd      DateTime?
-  UserFeature     UserFeature? @relation("user_feature_current_duration", fields: [id], references: [currentDurationId])
+  consume_start    DateTime?
+  consume_end      DateTime?
+  c_user_feature     UserFeature? @relation("user_feature_current_duration", fields: [id], references: [current_duration_id])
 
   @@index([user_feature_id], name: "idx_feature_duration_user_feature_id")
+  @@index([consume_start], name: "idx_feature_duration_consume_start")
+  @@index([consume_end], name: "idx_feature_duration_consume_end")
 }
 
 model Badge {
