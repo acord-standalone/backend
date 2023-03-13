@@ -19,7 +19,7 @@ module.exports = async (req, res, next) => {
 
   if (!userId) return res.status(401).send({ ok: false, error: "Invalid x-acord-token." })
 
-  res.user = {
+  req.user = {
     id: userId
   };
 

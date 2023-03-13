@@ -20,23 +20,28 @@ router.get('/:userId', async (req, res, next) => {
     }
   });
 
-  if (!userIdRegex.test(res.user.id)) return next();
+  user.data = user.data.reduce((acc, cur) => {
+    acc[cur.key] = cur.value;
+    return acc;
+  }, {});
+
+  if (!userIdRegex.test(req.user.id)) return next();
   
   if (!user) {
     return res
       .status(404)
-      .setHeader("Cache-Control", 360)
+      .setHeader("Cache-Control", "max-age=360")
       .send({ ok: false, error: "User not found." });
   }
 
-  if (res.user.id !== user.id) {
+  if (req.user.id !== user.id) {
     return res
-      .setHeader("Cache-Control", 360)
-      .send({ ok: true, user });
+      .setHeader("Cache-Control", "max-age=360")
+      .send({ ok: true, data: user });
   } else {
     return res
-      .setHeader("Cache-Control", 30)
-      .send({ ok: true, user });
+      .setHeader("Cache-Control", "max-age=30")
+      .send({ ok: true, data: user });
   }
 });
 
