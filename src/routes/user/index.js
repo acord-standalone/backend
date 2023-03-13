@@ -2,9 +2,17 @@ const { Router } = require('express');
 const prisma = require('../../../db.js');
 const router = Router();
 const userIdRegex = /^[0-9]{18,19}$/;
+
 router.use('/features', require('./features/index.js'));
 
-router.get('/:userId', async (req, res, next) => {
+router.get('/:userId', async (req, res) => {
+  if (!userIdRegex.test(req.user.id)) {
+    return res
+      .status(400)
+      .setHeader("Cache-Control", "max-age=360")
+      .send({ ok: false, error: "Invalid user id." });
+  }
+
   const user = await prisma.user.findUnique({
     where: {
       id: req.params.userId,
@@ -25,8 +33,6 @@ router.get('/:userId', async (req, res, next) => {
     return acc;
   }, {});
 
-  if (!userIdRegex.test(req.user.id)) return next();
-  
   if (!user) {
     return res
       .status(404)
@@ -35,14 +41,11 @@ router.get('/:userId', async (req, res, next) => {
   }
 
   if (req.user.id !== user.id) {
-    return res
-      .setHeader("Cache-Control", "max-age=360")
-      .send({ ok: true, data: user });
+    res.setHeader("Cache-Control", "max-age=360")
   } else {
-    return res
-      .setHeader("Cache-Control", "max-age=30")
-      .send({ ok: true, data: user });
+    res.setHeader("Cache-Control", "max-age=30")
   }
+  res.send({ ok: true, data: user });
 });
 
 module.exports = router;

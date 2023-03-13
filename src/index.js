@@ -9,3 +9,6 @@ app.use("/", require("./routes/index.js"));
 app.use("/static", express.static(`${process.cwd()}/static`));
 
 app.listen(2023, () => console.log("*:2023"));
+
+// init discord bot
+require("./discord");

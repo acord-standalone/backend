@@ -195,56 +195,6 @@ router.patch('/me/item/:featureId', async (req, res) => {
 
 });
 
-router.post('/me/name-color', async (req, res) => {
-  const userId = req.user.id;
-  const { colors } = req.body;
-
-  if (!colors?.length) return res.status(400).setHeader("Cache-Control", "max-age=3600").send({ ok: false, error: "Request[\"body\"][\"colors\"] is missing." });
-
-  const feature = await prisma.userFeature.findFirst({
-    where: {
-      user_id: userId,
-      type: "colored_name",
-      enabled: true,
-      current_duration: {
-        consume_end: {
-          gt: new Date()
-        }
-      }
-    },
-    select: {
-      user_id: true,
-      id: true,
-      durations: {
-        select: {
-          consume_start: true,
-          consume_end: true,
-          duration: true,
-          id: true,
-        }
-      },
-      data: true
-    }
-  });
-
-  if (!feature) return res.status(404).setHeader("Cache-Control", "max-age=3600").send({ ok: false, error: "Feature not found." });
-
-  if (feature.user_id !== userId) return res.status(403).setHeader("Cache-Control", "max-age=3600").send({ ok: false, error: "You don't have permission to access this feature." });
-
-  feature.data.colors = colors.slice(0, feature.data.colorLimit);
-
-  await prisma.userFeature.update({
-    where: {
-      id: feature.id,
-    },
-    data: {
-      data: feature.data,
-    }
-  });
-
-  res.setHeader("Cache-Control", "max-age=10").send({ ok: true, data: feature });
-});
-
 function formatDuration(feature) {
   const now = Date.now();
   const start = feature.durations.reduce((prev, current) => ((prev.consume_start) && (prev.consume_start < current.consume_start)) ? prev : current)?.consume_start?.getTime() ?? now;

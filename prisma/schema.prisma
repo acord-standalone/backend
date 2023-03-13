@@ -23,12 +23,15 @@ model User {
 }
 
 model UserData {
-  user_id    String   @unique @db.VarChar(64)
+  user_id    String   @db.VarChar(64)
   user       User     @relation(fields: [user_id], references: [id])
   key        String   @db.VarChar(64)
   value      Json     @db.JsonB
   updated_at DateTime @updatedAt
   created_at DateTime @default(now())
+
+  @@unique([user_id, key], name: "unq_user_data_user_id_key")
+  @@index([user_id], name: "idx_user_data_user_id", type: Hash)
 }
 
 enum FeatureType {
