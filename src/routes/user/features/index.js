@@ -13,7 +13,14 @@ const patchColorNameScheme = Joi.object({
   angle: Joi.string().regex(degRegex),
   type: Joi.string().valid("linear", "radial"),
   enabled: Joi.boolean(),
-})
+});
+
+const patchProfileMusicScheme = Joi.object({
+  trackId: Joi.string(),
+  positionMs: Joi.number().min(0).max(28_800_000),
+  enabled: Joi.boolean(),
+  volume: Joi.number().min(0).max(100),
+});
 
 
 router.get('/profile/:userId', async (req, res) => {
@@ -53,7 +60,8 @@ router.get('/profile/:userId', async (req, res) => {
             }
           } : {})
         }
-      }
+      },
+      last_exchange: true,
     }
   });
 
@@ -65,7 +73,16 @@ router.get('/profile/:userId', async (req, res) => {
 
   user.features.push({
     id: -1,
-  })
+    type: "badge",
+    feature_id: 0,
+    enabled: true,
+    current_duration_id: -1,
+    durations: {
+      start: user.last_exchange.getTime(),
+      end: user.last_exchange.getTime() + (86400000 * 7),
+      now: Date.now(),
+    }
+  });
 
   res.setHeader("Cache-Control", "max-age=60").send({ ok: true, data: user });
 });
@@ -137,12 +154,12 @@ router.patch('/me/item/:featureId', async (req, res) => {
         if (gradiant_direction) data.gradiant_direction = gradiant_direction;
         if (type) data.type = type;
 
-        await prisma.userFeature.update({
+        const responseData = await prisma.userFeature.update({
           where: { id: feature.id, },
           data: { data, enabled: typeof enabled === "boolean" ? enabled : feature.enabled }
         }).catch(() => {});
 
-        res.send({ ok: true, data });
+        res.send({ ok: true, data: responseData });
         
       } catch (e) {
         res.status(400)
@@ -161,6 +178,7 @@ router.patch('/me/item/:featureId', async (req, res) => {
         await prisma.userFeature.updateMany({
           where: {
             user_id: req.user.id,
+            type: "hat",
           },
           data: {
             enabled: false
@@ -168,12 +186,38 @@ router.patch('/me/item/:featureId', async (req, res) => {
         })
       }
 
-      await prisma.userFeature.update({
+      const responseData = await prisma.userFeature.update({
         where: { id: feature.id, },
         data: { enabled }
       }).catch(() => {});
 
-      res.send({ ok: true, data: { enabled, id: feature.id } });
+      res.send({ ok: true, data: responseData });
+      break;
+    }
+
+    case "profile_music": {
+
+      try {
+        const { trackId, positionMs, enabled, volume } = (await patchProfileMusicScheme.validateAsync(req.body)) && req.body;
+
+        const data = feature.data;
+
+        if (trackId) data.trackId = trackId;
+        if (positionMs) data.positionMs = positionMs;
+        if (volume) data.volume = volume;
+
+        const responseData = await prisma.userFeature.update({
+          where: { id: feature.id, },
+          data: { data, enabled: typeof enabled === "boolean" ? enabled : feature.enabled }
+        }).catch(() => {});
+
+        res.send({ ok: true, data: responseData });
+      } catch (e) {
+        res.status(400)
+        // .setHeader("Cache-Control", "max-age=3600") // TODO: Add cache control
+        .send({ ok: false, error: e.message });
+      }
+
       break;
     }
 
@@ -182,12 +226,12 @@ router.patch('/me/item/:featureId', async (req, res) => {
 
       if (typeof enabled !== "boolean") return res.status(400).setHeader("Cache-Control", "max-age=3600").send({ ok: false, error: "Request body.enabled is missing." });
 
-      await prisma.userFeature.update({
+      const responseData = await prisma.userFeature.update({
         where: { id: feature.id, },
         data: { enabled }
       }).catch(() => {});
 
-      res.send({ ok: true, data: { enabled } });
+      res.send({ ok: true, data: responseData });
       break;
     }
 

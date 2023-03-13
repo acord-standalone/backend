@@ -48,9 +48,15 @@ router.get('/callback/step2', async (req, res) => {
 
 router.get('/exchange', async (req, res) => {
   if (!req.query.acordToken) return res.send({ ok: false, error: 'No acordToken provided.' });
-  const user = await prisma.user.findUnique({
+  const user = await prisma.user.update({
     where: {
       acord_token: req.query.acordToken
+    },
+    data: {
+      last_exchange: new Date(),
+    },
+    select: {
+      id: true,
     }
   });
   if (!user) return res.send({ ok: false, error: 'Invalid acordToken provided.' });

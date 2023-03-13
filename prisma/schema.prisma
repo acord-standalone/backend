@@ -17,6 +17,7 @@ model User {
   discord_access_token String   @unique @db.VarChar(64)
   updated_at           DateTime @updatedAt
   created_at           DateTime @default(now())
+  last_exchange        DateTime @default(now())
 
   data     UserData[]
   features UserFeature[]
@@ -39,7 +40,7 @@ enum FeatureType {
   colored_name
   hat
   // font_name
-  // profile_music
+  profile_music
   // profile_animation
   // avatar_shine
 }
