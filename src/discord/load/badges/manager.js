@@ -1,7 +1,33 @@
 const prisma = require("../../../../db");
 const dbi = require("../../dbi");
-const { ButtonStyle } = require("discord.js")
+const { ButtonStyle } = require("discord.js");
+const { parseDuration } = require("stuffs");
+const formatifyFeatureDurations = require("../../../other/formatifyFeatureDurations");
 dbi.register(({ ChatInput, ChatInputOptions, Modal, Button }) => {
+
+  const badgeFinderOption = ChatInputOptions.integerAutocomplete({
+    name: "badge",
+    description: "The badge to edit.",
+    required: true,
+    onComplete: async ({ value }) => {
+      const badge = await prisma.badge.findMany({
+        where: {
+          name: {
+            contains: value
+          }
+        },
+        select: {
+          id: true,
+          name: true
+        }
+      });
+
+      return badge.map(badge => ({
+        name: badge.name,
+        value: badge.id
+      }));
+    },
+  });
 
   ChatInput({
     name: "badge create",
@@ -125,31 +151,79 @@ dbi.register(({ ChatInput, ChatInputOptions, Modal, Button }) => {
       interaction.editReply(await getBadgeManager(badgeId));
     },
     options: [
-      ChatInputOptions.integerAutocomplete({
-        name: "badge",
-        description: "The badge to edit.",
-        required: true,
-        onComplete: async ({ value }) => {
-          const badge = await prisma.badge.findMany({
-            where: {
-              name: {
-                contains: value
-              }
-            },
-            select: {
-              id: true,
-              name: true
-            }
-          });
-
-          return badge.map(badge => ({
-            name: badge.name,
-            value: badge.id
-          }));
-        },
-      })
+      badgeFinderOption
     ]
-  })
+  });
+
+  ChatInput({
+    name: "badge assign",
+    description: "Assign a badge to a user.",
+    async onExecute({ interaction }) {
+      const badgeId = interaction.options.getInteger("badge");
+      const duration = parseDuration(interaction.options.getString("duration"));
+
+      if (!duration || duration < 0) return interaction.reply({
+        content: "Invalid duration.",
+        ephemeral: true
+      });
+
+      const user = interaction.options.getUser("user");
+      const featureDuration = await prisma.featureDuration.create({
+        data: {
+          user_feature: {
+            connectOrCreate: {
+              where: {
+                unq_user_feature_user_id_type_feature_id: {
+                  user_id: user.id,
+                  feature_id: badgeId,
+                  type: "badge"
+                }
+              },
+              create: {
+                user: {
+                  connect: {
+                    where: {
+                      id: user.id
+                    }
+                  }
+                },
+                type: "badge",
+                feature_id: badgeId,
+              }
+            }
+          },
+          duration: duration,
+        },
+        select: {
+          user_feature_id: true,
+        }
+      });
+
+      await formatifyFeatureDurations({
+        userFeatureId: featureDuration.user_feature_id,
+      });
+
+      await interaction.reply({
+        content: `Assigned badge to ${user.tag}.`,
+        ephemeral: true
+      });
+    },
+    options: [
+      ChatInputOptions.user({
+        name: "user",
+        description: "The user to assign the badge to.",
+        required: true,
+      }),
+      badgeFinderOption,
+      ChatInputOptions.string({
+        name: "duration",
+        description: "The duration of the badge. ex: (10m, 1h)",
+        required: true,
+        minLength: 2,
+        maxLength: 10,
+      }),
+    ]
+  });
 
   async function getBadgeManager(badgeId) {
 

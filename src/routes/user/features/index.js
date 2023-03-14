@@ -2,6 +2,7 @@
 const { Router } = require('express');
 const Joi = require('joi');
 const prisma = require('../../../../db');
+const formatifyFeatureDurations = require('../../../other/formatifyFeatureDurations');
 const router = Router();
 const degRegex = /^([0-9]{1,3})deg$/;
 
@@ -67,6 +68,8 @@ router.get('/profile/:userId', async (req, res) => {
 
   if (!user) return res.status(404).setHeader("Cache-Control", "max-age=360").send({ ok: false, error: "User not found." });
 
+  await formatifyFeatureDurations({ userId })
+
   if (req.query.durations === 'true' && req.user.id !== user.id) return res.status(401).setHeader("Cache-Control", "max-age=360").send({ ok: false, error: "You can't view other users' features." });
 
   if (req.query.durations === 'true' && user?.features?.length) user.features = user.features.map(formatDuration);
@@ -84,7 +87,9 @@ router.get('/profile/:userId', async (req, res) => {
     }
   });
 
-  res.setHeader("Cache-Control", "max-age=60").send({ ok: true, data: user });
+  if (req.user.id === user.id) res.setHeader("Cache-Control", "max-age=60");
+  else res.setHeader("Cache-Control", "max-age=300");
+  res.send({ ok: true, data: user });
 });
 
 router.get('/badge/:badgeId', async (req, res) => {
