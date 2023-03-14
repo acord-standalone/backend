@@ -147,6 +147,4 @@ async function formatifyFeatureDurations({ userFeatureId, userId }) {
   }
 }
 
-
-
 module.exports = formatifyFeatureDurations;
